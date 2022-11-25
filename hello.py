@@ -2,10 +2,11 @@ from flask import Flask
 from flask_restful import Api, Resource, reqparse, abort, fields, marshal_with
 from flask_sqlalchemy import SQLAlchemy
 import pymysql
+import psycopg2
 
 app = Flask(__name__)
 api = Api(app)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:password123@localhost/videos'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql+psycopg2://postgres:9NkMB92OPHqFCx83eWkY@containers-us-west-74.railway.app:7276/railway'
 db = SQLAlchemy(app)
 
 
