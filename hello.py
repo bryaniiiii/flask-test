@@ -6,7 +6,7 @@ import psycopg2
 
 app = Flask(__name__)
 api = Api(app)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql+psycopg2://postgres:9NkMB92OPHqFCx83eWkY@containers-us-west-74.railway.app:7276/railway'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:AJBNv20J9oGK8o5bk32I@containers-us-west-58.railway.app:7212/railway'
 db = SQLAlchemy(app)
 
 
