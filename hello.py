@@ -1,10 +1,14 @@
-from flask import Flask
+from flask import Flask, jsonify, make_response, session
 from flask_restful import Api, Resource, reqparse, abort, fields, marshal_with
 from flask_sqlalchemy import SQLAlchemy
+import jwt
+from datetime import datetime, timedelta
+from functools import wraps
 import pymysql
 import psycopg2
 
 app = Flask(__name__)
+app.config['SECRET_KEY'] = '\x8bXN\xe4i\xc9\xf3\x83\x89\xbb%E'
 api = Api(app)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:AJBNv20J9oGK8o5bk32I@containers-us-west-58.railway.app:7212/railway'
 db = SQLAlchemy(app)
@@ -19,10 +23,42 @@ class VideoModel(db.Model):
 	def __repr__(self):
 		return f"Video(name = {name}, views = {views}, likes = {likes})"
 
-video_put_args = reqparse.RequestParser()
-video_put_args.add_argument("name", type=str, help="Name of the video is required", required=True,location='values')
-video_put_args.add_argument("views", type=int, help="Views of the video", required=True,location='values')
-video_put_args.add_argument("likes", type=int, help="Likes on the video", required=True,location='values')
+def token_required(func):
+    # decorator factory which invoks update_wrapper() method and passes decorated function as an argument
+    @wraps(func)
+    def decorated(*args, **kwargs):
+        token = request.args.get('token')
+        if not token:
+            return jsonify({'Alert!': 'Token is missing!'}), 401
+
+        try:
+
+            data = jwt.decode(token, app.config['SECRET_KEY'])
+        # You can use the JWT errors in exception
+        # except jwt.InvalidTokenError:
+        #     return 'Invalid token. Please log in again.'
+        except:
+            return jsonify({'Message': 'Invalid token'}), 403
+        return func(*args, **kwargs)
+    return decorated
+
+
+video_post_args = reqparse.RequestParser()
+video_post_args.add_argument("name", type=str, help="Name of the video is required", required=True,location='values')
+video_post_args.add_argument("views", type=int, help="Views of the video", required=True,location='values')
+video_post_args.add_argument("likes", type=int, help="Likes on the video", required=True,location='values')
+
+video_get_args = reqparse.RequestParser()
+video_get_args.add_argument("token", type=str, help="Token is required", required=True,location='headers')
+
+video_update_args = reqparse.RequestParser()
+video_update_args.add_argument("name", type=str, help="Name of the video is required",location='values')
+video_update_args.add_argument("views", type=int, help="Views of the video",location='values')
+video_update_args.add_argument("likes", type=int, help="Likes on the video",location='values')
+
+video_login_args = reqparse.RequestParser()
+video_login_args.add_argument("username", type=str, help="Name of the video is required", required=True,location='values')
+video_login_args.add_argument("password", type=int, help="Views of the video", required=True,location='values')
 
 resource_fields= {
     'id' : fields.Integer,
@@ -30,22 +66,26 @@ resource_fields= {
     'views' : fields.Integer,
     'likes' : fields.Integer
 }
-video_update_args = reqparse.RequestParser()
-video_update_args.add_argument("name", type=str, help="Name of the video is required",location='values')
-video_update_args.add_argument("views", type=int, help="Views of the video",location='values')
-video_update_args.add_argument("likes", type=int, help="Likes on the video",location='values')
+
 
 class Video(Resource):
-    @marshal_with(resource_fields)
+    
     def get(self, video_id):
-        result = VideoModel.query.filter_by(id=video_id).first()
-        if not result:
-            abort(404, message="could not find video with that id")
-        return result
+        args = video_get_args.parse_args()
+        try:
+            payload = jwt.decode(args['token'], app.config['SECRET_KEY'], algorithms=['HS256'])
+
+        except:
+            return jsonify({'message': 'Invalid Token'})
+        return jsonify({'message': 'Verified'})
+        # result = VideoModel.query.filter_by(id=video_id).first()
+        # if not result:
+        #     abort(404, message="could not find video with that id")
+        # return result
     
     @marshal_with(resource_fields)
     def post(self, video_id):
-        args = video_put_args.parse_args()
+        args = video_post_args.parse_args()
         result = VideoModel.query.filter_by(id=video_id).first()
         if result:
             abort(409, message="video id already exists")
@@ -72,7 +112,28 @@ class Video(Resource):
         db.session.commit()
         return result  
 
+class Login(Resource):
+
+    
+    def post(self):
+        args = video_login_args.parse_args()
+        if args['username'] and args['password'] == 123456:
+            session['logged_in'] = True
+
+            token = jwt.encode({
+                'user': args['username'],
+                'expiration': str(datetime.utcnow() +timedelta(seconds=120))
+
+            }, app.config['SECRET_KEY']
+            )
+            return jsonify({'token': token})
+        else:
+            return jsonify({'message': 'Unable to verify'})
+
+
+
 api.add_resource(Video, "/video/<int:video_id>")
+api.add_resource(Login, "/login")
 
 
 
