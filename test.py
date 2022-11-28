@@ -11,7 +11,7 @@ BASE = "http://127.0.0.1:5000/"
 #     print(response.json())
 
 # print("GETTING STUFF")
-response= requests.get(BASE+"video/1", headers= {'token':'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoiQnJ5YW4iLCJleHBpcmF0aW9uIjoiMjAyMi0xMS0yNSAxMzozNjoyNi45MTY3NDAifQ.dQZWpwCi6F7q-sVVRIoJqsq9wKgbVgwAQ7DBXVtupTE'})
+response= requests.get(BASE+"video/1", headers= {'token':'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoiQnJ5YW4iLCJleHAiOjE2Njk2MTk3NDV9.um9yLkTfqr7-SHnvUzAQVfjcOFBGtFFB55mE-pHLMWw'})
 print(response.json())
 # response = requests.post(BASE+"login", data = {'username':'Bryan','password':123456})
 # print(response.json())

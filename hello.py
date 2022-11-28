@@ -2,10 +2,10 @@ from flask import Flask, jsonify, make_response, session
 from flask_restful import Api, Resource, reqparse, abort, fields, marshal_with
 from flask_sqlalchemy import SQLAlchemy
 import jwt
-from datetime import datetime, timedelta
+import datetime
 from functools import wraps
-import pymysql
-import psycopg2
+# import pymysql
+# import psycopg2
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = '\x8bXN\xe4i\xc9\xf3\x83\x89\xbb%E'
@@ -23,24 +23,7 @@ class VideoModel(db.Model):
 	def __repr__(self):
 		return f"Video(name = {name}, views = {views}, likes = {likes})"
 
-def token_required(func):
-    # decorator factory which invoks update_wrapper() method and passes decorated function as an argument
-    @wraps(func)
-    def decorated(*args, **kwargs):
-        token = request.args.get('token')
-        if not token:
-            return jsonify({'Alert!': 'Token is missing!'}), 401
 
-        try:
-
-            data = jwt.decode(token, app.config['SECRET_KEY'])
-        # You can use the JWT errors in exception
-        # except jwt.InvalidTokenError:
-        #     return 'Invalid token. Please log in again.'
-        except:
-            return jsonify({'Message': 'Invalid token'}), 403
-        return func(*args, **kwargs)
-    return decorated
 
 
 video_post_args = reqparse.RequestParser()
@@ -67,17 +50,29 @@ resource_fields= {
     'likes' : fields.Integer
 }
 
-
-class Video(Resource):
-    
-    def get(self, video_id):
+def token_required(func):
+    # decorator factory which invoks update_wrapper() method and passes decorated function as an argument
+    @wraps(func)
+    def decorated(*args, **kwargs):
         args = video_get_args.parse_args()
+        token = args['token']
+        if not token:
+            return jsonify({'Alert!': 'Token is missing!'})
+
         try:
-            payload = jwt.decode(args['token'], app.config['SECRET_KEY'], algorithms=['HS256'])
+
+            data = jwt.decode(token, app.config['SECRET_KEY'],algorithms=['HS256'])
 
         except:
-            return jsonify({'message': 'Invalid Token'})
+            return jsonify({'Message': 'Invalid token'})
+        return func(*args, **kwargs)
+    return decorated
+
+class Video(Resource):
+    @token_required
+    def get(self, video_id):
         return jsonify({'message': 'Verified'})
+        
         # result = VideoModel.query.filter_by(id=video_id).first()
         # if not result:
         #     abort(404, message="could not find video with that id")
@@ -122,9 +117,9 @@ class Login(Resource):
 
             token = jwt.encode({
                 'user': args['username'],
-                'expiration': str(datetime.utcnow() +timedelta(seconds=120))
+                'exp': datetime.datetime.now(tz=datetime.timezone.utc) + datetime.timedelta(seconds=30)
 
-            }, app.config['SECRET_KEY']
+            }, app.config['SECRET_KEY'],algorithm="HS256"
             )
             return jsonify({'token': token})
         else:
